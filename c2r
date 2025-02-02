@@ -1,0 +1,26 @@
+#!/bin/bash
+
+# Get the directory where this script is located
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+PYTHON_SCRIPT="$SCRIPT_DIR/cpy2rem.py"
+
+# Check if Python 3 is installed
+if ! command -v python3 &> /dev/null; then
+    echo "Error: Python 3 is required but not installed"
+    exit 1
+fi
+
+# Check if the routines directory exists, if not create it
+ROUTINES_DIR="$SCRIPT_DIR/routines"
+if [ ! -d "$ROUTINES_DIR" ]; then
+    mkdir -p "$ROUTINES_DIR"
+fi
+
+# Check if the Python script exists
+if [ ! -f "$PYTHON_SCRIPT" ]; then
+    echo "Error: Could not find $PYTHON_SCRIPT"
+    exit 1
+fi
+
+# Execute the Python script with all passed arguments
+python3 "$PYTHON_SCRIPT" "$@"
