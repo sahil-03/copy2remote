@@ -6,19 +6,7 @@ from pathlib import Path
 
 CONFIGS_DIR_PATH = Path(__file__).parent / "configs"
 
-def copy_to_remote(config_num: int, custom_hostname: str = None): 
-    config_file = f"{CONFIGS_DIR_PATH}/config{config_num}.json"
-    with open(config_file, "r") as f:
-        data = json.load(f)
-    
-    key_file_str = "-i {}".format(data["key_filename"])
-    command = "scp -r {} {} {}@{}:~/".format(
-        key_file_str if data["key_filename"] else "", 
-        data["local_path"], 
-        data["username"], 
-        custom_hostname if custom_hostname is not None else data["hostname"]
-    )
-
+def _run_command(command: str): 
     try: 
         _ = subprocess.run(
             command, 
@@ -29,6 +17,29 @@ def copy_to_remote(config_num: int, custom_hostname: str = None):
         )
     except Exception as e: 
         print(f"Subprocess failed with error: {e}")
+
+def copy_to_remote(config_num: int, custom_hostname: str = None): 
+    config_file = f"{CONFIGS_DIR_PATH}/config{config_num}.json"
+    with open(config_file, "r") as f:
+        data = json.load(f)
+
+    if data["has_gh"]: 
+        print("Pulling latest from GitHbub")
+        original_dir = os.getcwd() 
+        try: 
+            os.chdir(data["local_path"])
+            _run_command("git pull")
+        finally: 
+            os.chdir(original_dir)
+    
+    key_file_str = "-i {}".format(data["key_filename"])
+    command = "scp -r {} {} {}@{}:~/".format(
+        key_file_str if data["key_filename"] else "", 
+        data["local_path"], 
+        data["username"], 
+        custom_hostname if custom_hostname is not None else data["hostname"]
+    )
+    _run_command(command)
 
 def create_new_config(args_dict: dict): 
     new_config_num = len(os.listdir(CONFIGS_DIR_PATH)) + 1
@@ -67,6 +78,7 @@ if __name__ == "__main__":
     new_parser.add_argument("username", help="Username")
     new_parser.add_argument("hostname", help="Hostname")
     new_parser.add_argument("key_filename", help="Key filename, optional", default=None)
+    new_parser.add_argument("has_gh", help="Associated github repo, optional", default=False)
 
     # "list" command
     list_parser = subparsers.add_parser("list", aliases=["ls"])
